@@ -1,0 +1,59 @@
+---
+version: '3.7'
+
+networks:
+  agent_network:
+    driver: overlay
+    attachable: true
+  ingress-net:
+    external: true
+    name: ingress_net
+
+volumes:
+  portainer_data:
+
+services:
+  agent:
+    image: portainer/agent
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/volumes:/var/lib/docker/volumes
+    networks:
+      - agent_network
+    deploy:
+      mode: global
+      placement:
+        constraints: [node.platform.os == linux]
+
+  portainer:
+    image: portainer/portainer-ce
+    command: -H tcp://tasks.agent:9001 --tlsskipverify
+    volumes:
+      - portainer_data:/data
+    networks:
+      - agent_network
+      - ingress-net
+    deploy:
+      labels:
+        # FLAGS
+        - "traefik.enable=true"
+        - "traefik.docker.network=ingress_net"
+        # HTTP
+        - "traefik.http.routers.${ROUTER_PREFIX:-default}-portainer-gui.entrypoints=web"
+        - "traefik.http.routers.${ROUTER_PREFIX:-default}-portainer-gui.rule=Host(`${PORTAINER_HOST:-portainer.example.com}`)"
+        - "traefik.http.routers.${ROUTER_PREFIX:-default}-portainer-gui.middlewares.compress=true"
+        # HTTPS
+        - "traefik.http.routers.${ROUTER_PREFIX:-default}-portainer-gui-secure.entrypoints=web-secure"
+        - "traefik.http.routers.${ROUTER_PREFIX:-default}-portainer-gui-secure.rule=Host(`${PORTAINER_HOST:-portainer.example.com}`)"
+        - "traefik.http.routers.${ROUTER_PREFIX:-default}-portainer-gui-secure.tls=true"
+        - "traefik.http.routers.${ROUTER_PREFIX:-default}-portainer-gui-secure.tls.certresolver=myResolver"
+        - "traefik.http.routers.${ROUTER_PREFIX:-default}-portainer-gui-secure.middlewares=${ROUTER_PREFIX:-default}-portainer-gui-middleware-chain"
+        # MIDDLEWARES
+        - "traefik.http.middlewares.${ROUTER_PREFIX:-default}-portainer-gui-middleware-chain.chain.middlewares=${ROUTER_PREFIX:-default}-portainer-gui-compress"
+        - "traefik.http.middlewares.${ROUTER_PREFIX:-default}-portainer-gui-compress.compress=true"
+        # BALANCING
+        - "traefik.http.services.${ROUTER_PREFIX:-default}-portainer-gui.loadbalancer.server.port=9000"
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
