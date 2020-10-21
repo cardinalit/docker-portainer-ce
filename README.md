@@ -26,9 +26,9 @@ Container management in Docker by Portainer. Including settings for the external
     ```
    where the variables are:
     ```yaml
-    PORTAINER_HOST (required)                      # Domain for Portainer GUI
-    ROUTER_PREFIX  (optional)                      # Prefix for router. Makes the router more unique for 
-                                                   # the load balancer. By default: monitoring
+    PORTAINER_HOST (required)              # Domain for Portainer GUI
+    ROUTER_PREFIX  (optional)              # Prefix for router. Makes the router more unique for 
+                                           # the load balancer. By default: monitoring
     ```
    
 4. Run deploy stack into Docker Swarm:
@@ -38,3 +38,8 @@ Container management in Docker by Portainer. Including settings for the external
    
 5. Enjoy with your management system by Portainer!  
 Type in your browser `http://${PORTAINER_HOST}`
+
+> **NOTE**
+>
+> If you don't export **PORTAINER_HOST** environment, by default domain for your installation of Portainer will be  
+> `http://portainer.example.com`
